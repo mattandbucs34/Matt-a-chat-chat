@@ -1,67 +1,56 @@
-import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import './App.css';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { FirebaseApp, initializeApp } from 'firebase/app';
-import { Database, DatabaseReference, getDatabase, onChildAdded, ref } from 'firebase/database'
-import { Header } from './components/Header';
-import { room } from './models/IRoom';
-import { Footer } from './components/Footer';
-import RoomList from './RoomList/RoomList';
+import { Database, DatabaseReference, getDatabase, ref } from 'firebase/database';
+import { RoomContextProvider } from './RoomList/RoomContext';
+import { MessagesContextProvider } from './Messages/MessagesContext';
+import { useUserState } from './User/UserContext';
+import Main from './components/Main';
+import SignInScreen from './components/SignInScreen';
 
 const config = {
-  apiKey: `${process.env.API_KEY}`,
-  authDomain: `${process.env.AUTH_DOMAIN}`,
-  databaseURL: "https://blocchat-mattyj.firebaseio.com/",
-  // databaseURL: process.env.DATABASE_URL,
-  projectId: `${process.env.PROJECT_ID}`,
-  storageBucket: `${process.env.STORAGE_BUCKET}`,
-  messagingSenderId: `${process.env.MESSAGING_SENDER_ID}`
+  apiKey: `${process.env.REACT_APP_API_KEY}`,
+  authDomain: `${process.env.REACT_APP_AUTH_DOMAIN}`,
+  databaseURL: `${process.env.REACT_APP_DATABASE_URL}`,
+  projectId: `${process.env.REACT_APP_PROJECT_ID}`,
+  storageBucket: `${process.env.REACT_APP_STORAGE_BUCKET}`,
+  messagingSenderId: `${process.env.REACT_APP_MESSAGING_SENDER_ID}`,
+  appId: `${process.env.REACT_APP_APP_ID}`
 }
 
-const initialRoom: room = {
-  id: "",
-  name: "Room 1"
-}
-const userId: number = 0;
-
-const appDB: FirebaseApp = initializeApp(config);
-const db: Database = getDatabase(appDB);
+const app: FirebaseApp = initializeApp(config);
+const db: Database = getDatabase(app);
 const roomsRef: DatabaseReference = ref(db, 'rooms');
+const msgRef: DatabaseReference = ref(db, 'Messages');
 
 function App() {
-  const [activeRoom, setActiveRoom]: [room, Dispatch<SetStateAction<room>>] = useState<room>(initialRoom);
+  const { user } = useUserState();
   const [isLoading, setIsLoading]: [boolean, Dispatch<SetStateAction<boolean>>] = useState<boolean>(true);
-  const [roomList, setRoomList]: [room[], Dispatch<SetStateAction<room[]>>] = useState<room[]>([]);
+  // const listen = useCallback(
+  //   onChildAdded(roomsRef, data => {
+  //     console.log(data.val());
+  // }) , [roomsRef])
 
   useEffect(() => {
-    async function loadData() {
-      await getRooms();
-    }
-    loadData();
     setIsLoading(false);
   }, []);
 
-  async function getRooms() {
-    const rooms: room[] = [];
-    onChildAdded(roomsRef, data => {
-      const newRoom = data.val();
-      newRoom.id = data.key as string;
-      rooms.push(newRoom);
-    });
-    setRoomList(rooms);
-  }
+  
 
   if(isLoading) {
     return <></>
   }else {
     return (
-      <div className="App">
-        <Header />
-        <RoomList rooms={roomList} />
-        <Footer />
-      </div>
-    );
+      <RoomContextProvider roomsRef={roomsRef}>
+        <MessagesContextProvider messagesDBRef={msgRef}>
+          <div className="App">
+            {!user && <SignInScreen />}
+            {user && <Main />}
+          </div>
+        </MessagesContextProvider>
+      </RoomContextProvider>
+    )
   }
-
 }
 
 export default App;

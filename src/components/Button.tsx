@@ -1,16 +1,11 @@
-import React from 'react'
-
 type ButtonType = {
   buttonText: string;
-  handleButtonClick(): void
 }
 
 const Button = (props: ButtonType) => {
-  const { buttonText, handleButtonClick} = props;
+  const { buttonText } = props;
   return (
-    <button onClick={() => handleButtonClick}>
-      {buttonText}
-    </button>
+    <button type='submit' >{buttonText}</button>
   )
 }
 
