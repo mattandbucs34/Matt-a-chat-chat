@@ -1,20 +1,37 @@
-import React from 'react'
-import AddNewRoom from '../components/AddNewRoom';
-import { room } from '../models/IRoom';
+import { onChildAdded, onChildRemoved } from 'firebase/database';
+import _ from 'lodash';
+import { useEffect } from 'react';
+import AddNewRoom from './components/AddNewRoom';
 import RoomListButton from './components/RoomListButton';
-import RoomListLogic from './RoomListLogic';
+import { room } from './models/IRoom';
+import { useRoomDispatch, useRoomState } from './RoomContext';
 
-type RoomListType = {
-  rooms: Array<room>
-}
+const RoomList = () => {
+  const { roomList, roomsRef } = useRoomState();
+  const { setRoomList } = useRoomDispatch();
 
-const RoomList = (props: RoomListType) => {
-  const { rooms } = props;
-  const { roomName, handleNameChange} = RoomListLogic();
+  useEffect(() => {
+    let list: room[] = roomList;
+    onChildAdded(roomsRef, data => {
+      const newRoom = data.val();
+      newRoom.id = data.key;
+      if(!_.some(list, newRoom)) {
+        list = _.concat(list, newRoom);
+        setRoomList(list);
+      }
+    })
+
+    onChildRemoved(roomsRef, data => {
+      list = list.filter(room => room.id !== data.key);
+      setRoomList(list);
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomsRef])
+
   return (
     <div>
-      <AddNewRoom roomName={roomName} updateRoomName={handleNameChange} />
-      <RoomListButton rooms={rooms} />
+      <AddNewRoom />
+      {roomList.length > 0 && <RoomListButton /> }
     </div>
   )
 }
